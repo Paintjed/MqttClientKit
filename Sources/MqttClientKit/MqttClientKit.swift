@@ -10,7 +10,7 @@ import Foundation
 import MQTTNIO
 import NIOCore
 
-typealias Topic = String
+public typealias Topic = String
 
 public struct MqttClientKitInfo {
     public var address: String
@@ -70,7 +70,7 @@ enum MqttClientKitError: LocalizedError, Equatable {
     }
 }
 
-struct MqttClientKit {
+public struct MqttClientKit {
     @CasePathable
     enum State: Equatable {
         case idle
@@ -96,7 +96,7 @@ extension DependencyValues {
 }
 
 extension MqttClientKit: DependencyKey {
-    static var liveValue: Self {
+    public static var liveValue: Self {
         var connection: MQTTClient?
 
         func requireConnection(_ connection: MQTTClient?) throws -> MQTTClient {
@@ -195,48 +195,48 @@ extension MqttClientKit: DependencyKey {
         )
     }
 
-static var testValue: Self {
-    Self(
-        connect: { _ in
-            AsyncStream { continuation in
-                continuation.yield(.connected)
-                continuation.finish()
-            }
-        },
-        disconnect: {},
-        publish: { _ in
-            throw UnimplementedFailure(description: "This is test client.")
-        },
-        subscribe: { _ in
-            throw UnimplementedFailure(description: "This is test client.")
-        },
-        unsubscribe: { _ in
-            throw UnimplementedFailure(description: "This is test client.")
-        },
-        isActive: {
-            true
-        },
-        received: {
-            AsyncThrowingStream { continuation in
-                Task {
-                    for i in 1...3 {
-                        let jsonString = """
-                        {"status": 1, "total_stripes": 10, "current_stripe": \(i)}
-                        """
-                        let info = MQTTPublishInfo(
-                            qos: .atLeastOnce,
-                            retain: false,
-                            topicName: "painting",
-                            payload: ByteBuffer(data: jsonString.data(using: .utf8)!),
-                            properties: .init([])
-                        )
-                        continuation.yield(info)
-                        try? await Task.sleep(nanoseconds: 100_000_000)
-                    }
+    public static var testValue: Self {
+        Self(
+            connect: { _ in
+                AsyncStream { continuation in
+                    continuation.yield(.connected)
                     continuation.finish()
                 }
+            },
+            disconnect: {},
+            publish: { _ in
+                throw UnimplementedFailure(description: "This is test client.")
+            },
+            subscribe: { _ in
+                throw UnimplementedFailure(description: "This is test client.")
+            },
+            unsubscribe: { _ in
+                throw UnimplementedFailure(description: "This is test client.")
+            },
+            isActive: {
+                true
+            },
+            received: {
+                AsyncThrowingStream { continuation in
+                    Task {
+                        for i in 1 ... 3 {
+                            let jsonString = """
+                            {"status": 1, "total_stripes": 10, "current_stripe": \(i)}
+                            """
+                            let info = MQTTPublishInfo(
+                                qos: .atLeastOnce,
+                                retain: false,
+                                topicName: "painting",
+                                payload: ByteBuffer(data: jsonString.data(using: .utf8)!),
+                                properties: .init([])
+                            )
+                            continuation.yield(info)
+                            try? await Task.sleep(nanoseconds: 100_000_000)
+                        }
+                        continuation.finish()
+                    }
+                }
             }
-        }
-    )
-}
+        )
+    }
 }
