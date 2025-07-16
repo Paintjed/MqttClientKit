@@ -89,7 +89,7 @@ public struct MqttClientKit {
 }
 
 extension DependencyValues {
-    var mqttClientKit: MqttClientKit {
+    public var mqttClientKit: MqttClientKit {
         get { self[MqttClientKit.self] }
         set { self[MqttClientKit.self] = newValue }
     }
