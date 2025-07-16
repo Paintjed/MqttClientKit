@@ -24,13 +24,13 @@ public struct MqttClientKitInfo {
     }
 }
 
-enum MqttClientKitError: LocalizedError, Equatable {
+public enum MqttClientKitError: LocalizedError, Equatable {
     case timeout
     case closeUnexpect
     case noConnection
     case underlying(Swift.Error)
 
-    var errorDescription: String? {
+    public var errorDescription: String? {
         switch self {
         case .timeout:
             "Connection Timeout"
@@ -43,7 +43,7 @@ enum MqttClientKitError: LocalizedError, Equatable {
         }
     }
 
-    var recoverySuggestion: String? {
+    public var recoverySuggestion: String? {
         switch self {
         case .timeout:
             "Check if the device's Wi-Fi is connected to the router."
@@ -56,7 +56,7 @@ enum MqttClientKitError: LocalizedError, Equatable {
         }
     }
 
-    static func == (lhs: MqttClientKitError, rhs: MqttClientKitError) -> Bool {
+    public static func == (lhs: MqttClientKitError, rhs: MqttClientKitError) -> Bool {
         switch (lhs, rhs) {
         case (.timeout, .timeout),
              (.closeUnexpect, .closeUnexpect),
@@ -72,20 +72,20 @@ enum MqttClientKitError: LocalizedError, Equatable {
 
 public struct MqttClientKit {
     @CasePathable
-    enum State: Equatable {
+    public enum State: Equatable {
         case idle
         case connected
         case connecting
         case disconnected(MqttClientKitError)
     }
 
-    var connect: (MqttClientKitInfo) async -> AsyncStream<State>
-    var disconnect: () async throws -> ()
-    var publish: (MQTTPublishInfo) async throws -> ()
-    var subscribe: (MQTTSubscribeInfo) async throws -> MQTTSuback?
-    var unsubscribe: (Topic) async throws -> ()
-    var isActive: () throws -> Bool
-    var received: () -> AsyncThrowingStream<MQTTPublishInfo, Error>
+    public var connect: (MqttClientKitInfo) async -> AsyncStream<State>
+    public var disconnect: () async throws -> ()
+    public var publish: (MQTTPublishInfo) async throws -> ()
+    public var subscribe: (MQTTSubscribeInfo) async throws -> MQTTSuback?
+    public var unsubscribe: (Topic) async throws -> ()
+    public var isActive: () throws -> Bool
+    public var received: () -> AsyncThrowingStream<MQTTPublishInfo, Error>
 }
 
 extension DependencyValues {
