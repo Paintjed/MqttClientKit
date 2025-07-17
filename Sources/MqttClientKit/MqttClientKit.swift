@@ -7,6 +7,7 @@
 
 import ComposableArchitecture
 import Foundation
+import Logging
 import MQTTNIO
 import NIOCore
 
@@ -88,8 +89,8 @@ public struct MqttClientKit {
     public var received: () -> AsyncThrowingStream<MQTTPublishInfo, Error>
 }
 
-extension DependencyValues {
-    public var mqttClientKit: MqttClientKit {
+public extension DependencyValues {
+    var mqttClientKit: MqttClientKit {
         get { self[MqttClientKit.self] }
         set { self[MqttClientKit.self] = newValue }
     }
@@ -106,9 +107,11 @@ extension MqttClientKit: DependencyKey {
             return connection
         }
 
+        let logger = Logger(label: "MqttClientKit")
         return Self(
             connect: { info in
                 do {
+                    logger.info("Creating MQTTClient for host: \(info.address), port: \(info.port), clientID: \(info.clientID)")
                     connection = MQTTClient(
                         host: info.address,
                         port: info.port,
@@ -117,11 +120,13 @@ extension MqttClientKit: DependencyKey {
                     )
 
                     try await connection?.connect()
+                    logger.info("MQTTClient connected successfully.")
                     return AsyncStream { continuation in
                         Task {
                             continuation.yield(.connected)
 
                             connection?.addCloseListener(named: info.clientID) { _ in
+                                logger.warning("MQTTClient connection closed unexpectedly.")
                                 continuation.yield(.disconnected(.closeUnexpect))
                                 continuation.finish()
                             }
@@ -129,8 +134,10 @@ extension MqttClientKit: DependencyKey {
                             connection?.addShutdownListener(named: info.clientID) { result in
                                 switch result {
                                 case .success:
+                                    logger.info("MQTTClient shutdown successfully.")
                                     continuation.yield(.idle)
                                 case .failure(let error):
+                                    logger.error("MQTTClient shutdown with error: \(String(describing: error))")
                                     continuation.yield(.disconnected(.underlying(error)))
                                 }
                                 continuation.finish()
@@ -138,42 +145,60 @@ extension MqttClientKit: DependencyKey {
                         }
                     }
                 } catch ChannelError.connectTimeout(_) {
+                    logger.error("MQTTClient connection timeout.")
                     try? connection?.syncShutdownGracefully()
                     return AsyncStream { continuation in
                         continuation.yield(.disconnected(.timeout))
                         continuation.finish()
                     }
                 } catch {
+                    logger.error("MQTTClient connection error: \(String(describing: error))")
                     try? connection?.syncShutdownGracefully()
                     return AsyncStream { continuation in
                         continuation.yield(.disconnected(.underlying(error)))
                         continuation.finish()
                     }
                 }
-
-            }, disconnect: {
+            },
+            disconnect: {
+                logger.info("Disconnecting MQTTClient...")
                 try await requireConnection(connection).disconnect()
-            }, publish: { info in
+                logger.info("MQTTClient disconnected.")
+            },
+            publish: { info in
+                logger.info("Publishing to topic: \(info.topicName), payload size: \(info.payload.readableBytes)")
                 try await requireConnection(connection).publish(to: info.topicName, payload: info.payload, qos: info.qos, retain: info.retain)
-            }, subscribe: { info in
+                logger.info("Publish completed for topic: \(info.topicName)")
+            },
+            subscribe: { info in
+                logger.info("Subscribing to topic: \(info.topicFilter)")
                 do {
                     let ack = try await requireConnection(connection).subscribe(to: [info])
+                    logger.info("Subscribe completed for topic: \(info.topicFilter)")
                     return ack
                 } catch {
+                    logger.error("Subscribe failed for topic: \(info.topicFilter), error: \(String(describing: error))")
                     throw error
                 }
-            }, unsubscribe: { topic in
+            },
+            unsubscribe: { topic in
+                logger.info("Unsubscribing from topic: \(topic)")
                 do {
                     try await requireConnection(connection).unsubscribe(from: [topic])
+                    logger.info("Unsubscribe completed for topic: \(topic)")
                 } catch {
+                    logger.error("Unsubscribe failed for topic: \(topic), error: \(String(describing: error))")
                     throw error
                 }
             },
             isActive: {
-                try requireConnection(connection).isActive()
+                let active = try requireConnection(connection).isActive()
+                logger.info("MQTTClient isActive: \(active)")
+                return active
             },
             received: {
-                AsyncThrowingStream<MQTTPublishInfo, Error> { continuation in
+                logger.info("Starting to receive MQTT messages...")
+                return AsyncThrowingStream<MQTTPublishInfo, Error> { continuation in
                     Task {
                         do {
                             let client = try requireConnection(connection)
@@ -181,12 +206,15 @@ extension MqttClientKit: DependencyKey {
                             for await result in listener {
                                 switch result {
                                 case .success(let info):
+                                    logger.info("Received message on topic: \(info.topicName), payload size: \(info.payload.readableBytes)")
                                     continuation.yield(info)
                                 case .failure(let error):
+                                    logger.error("Error receiving message: \(String(describing: error))")
                                     continuation.finish(throwing: MqttClientKitError.underlying(error))
                                 }
                             }
                         } catch {
+                            logger.error("Error in received stream: \(String(describing: error))")
                             continuation.finish(throwing: MqttClientKitError.noConnection)
                         }
                     }
