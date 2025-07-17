@@ -224,7 +224,13 @@ extension MqttClientKit: DependencyKey {
     }
 
     public static var testValue: Self {
-        Self(
+        final class State {
+            var subscriptions = Set<String>()
+            var publishedMessages = [MQTTPublishInfo]()
+        }
+        let state = LockIsolated(State())
+
+        return Self(
             connect: { _ in
                 AsyncStream { continuation in
                     continuation.yield(.connected)
@@ -232,14 +238,19 @@ extension MqttClientKit: DependencyKey {
                 }
             },
             disconnect: {},
-            publish: { _ in
-                throw UnimplementedFailure(description: "This is test client.")
+            publish: { info in
+                state.withValue {
+                    if $0.subscriptions.contains(info.topicName) {
+                        $0.publishedMessages.append(info)
+                    }
+                }
             },
-            subscribe: { _ in
-                throw UnimplementedFailure(description: "This is test client.")
+            subscribe: { info in
+                state.withValue { _ = $0.subscriptions.insert(info.topicFilter) }
+                return nil
             },
-            unsubscribe: { _ in
-                throw UnimplementedFailure(description: "This is test client.")
+            unsubscribe: { topic in
+                state.withValue { _ = $0.subscriptions.remove(topic) }
             },
             isActive: {
                 true
@@ -259,8 +270,19 @@ extension MqttClientKit: DependencyKey {
                                 properties: .init([])
                             )
                             continuation.yield(info)
-                            try? await Task.sleep(nanoseconds: 100_000_000)
+                            try? await Task.sleep(nanoseconds: 10_000_000)
                         }
+                        
+                        let messages = state.withValue {
+                            let msgs = $0.publishedMessages
+                            $0.publishedMessages.removeAll()
+                            return msgs
+                        }
+
+                        for message in messages {
+                            continuation.yield(message)
+                        }
+
                         continuation.finish()
                     }
                 }

@@ -1,6 +1,9 @@
 import Testing
 import Foundation
 @testable import MqttClientKit
+import ComposableArchitecture
+import NIOCore
+import MQTTNIO
 
 @Test
 func testMqttClientKitInfoInit() async throws {
@@ -47,4 +50,72 @@ func testMqttClientKitStateEquatable() async throws {
     #expect(MqttClientKit.State.connecting == .connecting)
     #expect(MqttClientKit.State.disconnected(.timeout) == .disconnected(.timeout))
     #expect(MqttClientKit.State.disconnected(.timeout) != .disconnected(.closeUnexpect))
+}
+
+
+@Test
+func testMqttClientKitTestValue() async throws {
+    let testValue = MqttClientKit.testValue
+    
+    let connectStream = await testValue.connect(.init(address: "", port: 0, clientID: ""))
+    for await state in connectStream {
+        #expect(state == .connected)
+    }
+    
+    try await testValue.disconnect()
+    
+    let isActive = try testValue.isActive()
+    #expect(isActive == true)
+    
+    let receivedStream = testValue.received()
+    var count = 0
+    for try await info in receivedStream {
+        count += 1
+        #expect(info.topicName == "painting")
+    }
+    #expect(count == 3)
+}
+
+@Test
+func testMqttClientKitPublishSubscribe() async throws {
+    let testValue = MqttClientKit.testValue
+
+    // 1. Connect
+    let connectStream = await testValue.connect(.init(address: "test.mosquitto.org", port: 1883, clientID: "gemini-test"))
+    for await state in connectStream {
+        #expect(state == .connected)
+    }
+
+    // 2. Subscribe
+    let subInfo = MQTTSubscribeInfo(topicFilter: "gemini-test-topic", qos: .atLeastOnce)
+    _ = try? await testValue.subscribe(subInfo)
+
+    // 3. Publish
+    let pubInfo = MQTTPublishInfo(
+        qos: .atLeastOnce,
+        retain: false,
+        topicName: "gemini-test-topic",
+        payload: ByteBuffer(string: "hello"),
+        properties: .init([])
+    )
+    try? await testValue.publish(pubInfo)
+
+    // 4. Receive
+    let receivedStream = testValue.received()
+    var receivedMessages = 0
+    for try await receivedInfo in receivedStream {
+        #expect(receivedInfo.topicName == "gemini-test-topic" || receivedInfo.topicName == "painting")
+        if receivedInfo.topicName == "gemini-test-topic" {
+            #expect(receivedInfo.payload == ByteBuffer(string: "hello"))
+        }
+        receivedMessages += 1
+    }
+    #expect(receivedMessages == 4)
+
+
+    // 5. Unsubscribe
+    try? await testValue.unsubscribe("gemini-test-topic")
+
+    // 6. Disconnect
+    try await testValue.disconnect()
 }
