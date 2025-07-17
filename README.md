@@ -14,45 +14,34 @@ A Swift package providing a composable, async/await-based MQTT client abstractio
 Add this package to your `Package.swift` dependencies:
 
 ```swift
-.package(url: "https://github.com/your-username/MqttClientKit.git", from: "1.0.0")
+.package(url: "https://github.com/jedlu/MqttClientKit.git", from: "1.0.0")
 ```
 
 And add `MqttClientKit` to your target dependencies.
 
-### Basic Example
-```swift
-import MqttClientKit
+### MqttClientKit API
 
-let client = MqttClientKit.liveValue
-let info = MqttClientKitInfo(address: "broker.hivemq.com", port: 1883, clientID: "myClient")
+`MqttClientKit` provides the following core functionalities:
 
-// Connect
-let stream = await client.connect(info)
-for await state in stream {
-    print("State: \(state)")
-}
+- `connect(info: MqttClientKitInfo) -> AsyncStream<State>`: Establishes a connection to the MQTT broker.
+- `disconnect() async throws -> ()`: Disconnects from the MQTT broker.
+- `publish(info: MQTTPublishInfo) async throws -> ()`: Publishes a message to a specified topic.
+- `subscribe(info: MQTTSubscribeInfo) async throws -> MQTTSuback?`: Subscribes to a topic.
+- `unsubscribe(topic: Topic) async throws -> ()`: Unsubscribes from a topic.
+- `isActive() throws -> Bool`: Checks if the client is currently connected.
+- `received() -> AsyncThrowingStream<MQTTPublishInfo, Error>`: Provides an asynchronous stream of received MQTT messages.
 
-// Publish
-let publishInfo = MQTTPublishInfo(
-    qos: .atLeastOnce,
-    retain: false,
-    topicName: "test/topic",
-    payload: ByteBuffer(data: Data("Hello MQTT!".utf8)),
-    properties: .init([])
-)
-try await client.publish(publishInfo)
+### Example Application
 
-// Subscribe
-let subscribeInfo = MQTTSubscribeInfo(topicFilter: "test/topic", qos: .atLeastOnce)
-try await client.subscribe(subscribeInfo)
+The `Examples` executable target demonstrates how to use `MqttClientKit` with The Composable Architecture (TCA).
 
-// Receive
-let receivedStream = client.received()
-for try await message in receivedStream {
-    let payloadString = message.payload.getString(at: 0, length: message.payload.readableBytes) ?? ""
-    print("Received: \(message.topicName), payload: \(payloadString)")
-}
+To run the example:
+
+```bash
+swift run Examples
 ```
+
+The example connects to an MQTT broker (defaulting to `localhost:1883`). You can change the broker address by modifying the `address` parameter in `Sources/Examples/TCA/MqttFeature.swift` within the `connectButtonTapped` action.
 
 ### Testing
 Use the `testValue` for unit tests or previews:
