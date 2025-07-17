@@ -116,7 +116,7 @@ extension MqttClientKit: DependencyKey {
                         host: info.address,
                         port: info.port,
                         identifier: info.clientID,
-                        eventLoopGroupProvider: .shared(.singletonMultiThreadedEventLoopGroup)
+                        eventLoopGroupProvider: .shared(.singletonNIOTSEventLoopGroup)
                     )
 
                     try await connection?.connect()
