@@ -14,7 +14,7 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/apple/swift-nio.git", from: "2.0.0"),
-        .package(url: "https://github.com/adam-fowler/mqtt-nio.git", from: "2.8.0"),
+        .package(url: "https://github.com/swift-server-community/mqtt-nio", from: "2.11.0"),
         .package(url: "https://github.com/pointfreeco/swift-composable-architecture.git", from: "1.0.0")
     ],
     targets: [

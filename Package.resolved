@@ -12,7 +12,7 @@
     {
       "identity" : "mqtt-nio",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/adam-fowler/mqtt-nio.git",
+      "location" : "https://github.com/swift-server-community/mqtt-nio",
       "state" : {
         "revision" : "493ca8bae5b3e93f9246a1a182a87efe25b5e6ba",
         "version" : "2.12.1"
