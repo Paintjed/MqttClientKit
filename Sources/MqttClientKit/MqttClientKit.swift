@@ -13,7 +13,7 @@ import NIOCore
 
 public typealias Topic = String
 
-public struct MqttClientKitInfo {
+public struct MqttClientKitInfo: Equatable {
     public var address: String
     public var port: Int
     public var clientID: String
