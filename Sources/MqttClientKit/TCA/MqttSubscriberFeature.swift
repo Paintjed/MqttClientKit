@@ -12,23 +12,25 @@ import NIOCore
 import OSLog
 
 @Reducer
-package struct MqttSubscriberFeature {
+public struct MqttSubscriberFeature {
   private let logger = Logger(subsystem: "MqttClientKit", category: "MqttSubscriberFeature")
+  
+  public init() {}
   
   // MARK: - State
   @ObservableState
-  package struct State: Sendable, Equatable {
-    package var subscriptions: IdentifiedArrayOf<MQTTSubscribeInfo>
-    package var messages: IdentifiedArrayOf<MQTTPublishInfo>
-    package var maxMessages: Int
-    package var lastError: MqttClientKitError?
+  public struct State: Sendable, Equatable {
+    public var subscriptions: IdentifiedArrayOf<MQTTSubscribeInfo>
+    public var messages: IdentifiedArrayOf<MQTTPublishInfo>
+    public var maxMessages: Int
+    public var lastError: MqttClientKitError?
     
     // New subscription form
-    package var newSubscriptionTopic: String
-    package var newSubscriptionQoS: MQTTQoS
-    package var showingSubscriptionForm: Bool
+    public var newSubscriptionTopic: String
+    public var newSubscriptionQoS: MQTTQoS
+    public var showingSubscriptionForm: Bool
     
-    package init(
+    public init(
       subscriptions: IdentifiedArrayOf<MQTTSubscribeInfo> = [],
       messages: IdentifiedArrayOf<MQTTPublishInfo> = [],
       maxMessages: Int = 100,
@@ -47,21 +49,21 @@ package struct MqttSubscriberFeature {
     }
     
     // Computed properties
-    package var activeSubscriptions: IdentifiedArrayOf<MQTTSubscribeInfo> {
+    public var activeSubscriptions: IdentifiedArrayOf<MQTTSubscribeInfo> {
       IdentifiedArrayOf(subscriptions.filter(\.isActive))
     }
     
-    package var hasError: Bool {
+    public var hasError: Bool {
       lastError != nil
     }
     
-    package var canAddSubscription: Bool {
+    public var canAddSubscription: Bool {
       !newSubscriptionTopic.isEmpty
     }
   }
     
     // MARK: - Body
-    package var body: some ReducerOf<Self> {
+    public var body: some ReducerOf<Self> {
       BindingReducer()
       Reduce(core)
     }
@@ -71,7 +73,7 @@ package struct MqttSubscriberFeature {
 extension MqttSubscriberFeature {
   // MARK: - Actions
   @CasePathable
-  package enum Action: Equatable, BindableAction, ComposableArchitecture.ViewAction {
+  public enum Action: Equatable, BindableAction, ComposableArchitecture.ViewAction {
     case view(ViewAction)
     case binding(BindingAction<State>)
     case delegate(Delegate)
@@ -86,7 +88,7 @@ extension MqttSubscriberFeature {
     case messageStreamFailed(MqttClientKitError)
     
     @CasePathable
-    package enum ViewAction: Equatable {
+    public enum ViewAction: Equatable {
       // Subscription management
       case addSubscriptionButtonTapped
       case subscriptionFormDismissed
@@ -102,7 +104,7 @@ extension MqttSubscriberFeature {
     }
     
     @CasePathable
-    package enum Delegate: Equatable {
+    public enum Delegate: Equatable {
       case messageReceived(MQTTPublishInfo)
       case subscriptionAdded(MQTTSubscribeInfo)
       case subscriptionRemoved(String)
@@ -111,7 +113,7 @@ extension MqttSubscriberFeature {
   }
     
   // MARK: - Core Reducer
-  package func core(into state: inout State, action: Action) -> Effect<Action> {
+  public func core(into state: inout State, action: Action) -> Effect<Action> {
     switch action {
     case let .view(viewAction):
       return handleViewAction(&state, viewAction)

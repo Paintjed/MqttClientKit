@@ -12,17 +12,19 @@ import NIOCore
 import OSLog
 
 @Reducer
-package struct MqttPublisherFeature {
+public struct MqttPublisherFeature {
     private let logger = Logger(subsystem: "MqttClientKit", category: "MqttPublisherFeature")
+    
+    public init() {}
   
     // MARK: - State
 
     @ObservableState
-    package struct State: Sendable, Equatable {
-        package var publishInfo: MQTTPublishInfo
-        package var isPublishing: Bool
+    public struct State: Sendable, Equatable {
+        public var publishInfo: MQTTPublishInfo
+        public var isPublishing: Bool
     
-        package init(
+        public init(
             publishInfo: MQTTPublishInfo = MQTTPublishInfo(
                 qos: .atMostOnce,
                 retain: false,
@@ -37,7 +39,7 @@ package struct MqttPublisherFeature {
         }
     
         // Convenience initializer for string-based input
-        package init(
+        public init(
             topic: String = "",
             payload: String = "",
             qos: MQTTQoS = .atMostOnce,
@@ -55,7 +57,7 @@ package struct MqttPublisherFeature {
         }
     
         // Computed properties for UI convenience
-        package var topic: String {
+        public var topic: String {
             get { publishInfo.topicName }
             set {
                 publishInfo = MQTTPublishInfo(
@@ -68,7 +70,7 @@ package struct MqttPublisherFeature {
             }
         }
     
-        package var payload: String {
+        public var payload: String {
             get { String(buffer: publishInfo.payload) }
             set {
                 publishInfo = MQTTPublishInfo(
@@ -81,7 +83,7 @@ package struct MqttPublisherFeature {
             }
         }
     
-        package var qos: MQTTQoS {
+        public var qos: MQTTQoS {
             get { publishInfo.qos }
             set {
                 publishInfo = MQTTPublishInfo(
@@ -94,7 +96,7 @@ package struct MqttPublisherFeature {
             }
         }
     
-        package var retain: Bool {
+        public var retain: Bool {
             get { publishInfo.retain }
             set {
                 publishInfo = MQTTPublishInfo(
@@ -107,20 +109,20 @@ package struct MqttPublisherFeature {
             }
         }
     
-        package var canPublish: Bool {
+        public var canPublish: Bool {
             !publishInfo.topicName.isEmpty && !isPublishing
         }
     }
     
     // MARK: - Body
 
-    package var body: some ReducerOf<Self> {
+    public var body: some ReducerOf<Self> {
         BindingReducer()
         Reduce(core)
     }
 }
 
-package extension MqttPublisherFeature {
+public extension MqttPublisherFeature {
     // MARK: - Actions
 
     @CasePathable
@@ -135,13 +137,13 @@ package extension MqttPublisherFeature {
         case publishFailed(MqttClientKitError)
     
         @CasePathable
-        package enum ViewAction: Equatable {
+        public enum ViewAction: Equatable {
             case publishButtonTapped
             case clearFormButtonTapped
         }
     
         @CasePathable
-        package enum Delegate: Equatable {
+        public enum Delegate: Equatable {
             case messagePublished(MQTTPublishInfo)
             case publishErrorOccurred(MqttClientKitError)
         }

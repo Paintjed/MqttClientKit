@@ -14,22 +14,24 @@ import NIOCore
 import OSLog
 
 @Reducer
-package struct MqttFeature {
+public struct MqttFeature {
   private let logger = Logger(subsystem: "MqttClientKit", category: "MqttFeature")
+  
+  public init() {}
   
   // MARK: - State
   @ObservableState
-  package struct State: Equatable, Sendable {
-    package var publisher: MqttPublisherFeature.State
-    package var subscriber: MqttSubscriberFeature.State
+  public struct State: Equatable, Sendable {
+    public var publisher: MqttPublisherFeature.State
+    public var subscriber: MqttSubscriberFeature.State
     
     // Connection management (optional, for unified features)
-    package var connectionInfo: MqttClientKitInfo
-    package var connectionState: MqttClientKit.State
-    package var isConnecting: Bool
-    package var showingConnectionSettings: Bool
+    public var connectionInfo: MqttClientKitInfo
+    public var connectionState: MqttClientKit.State
+    public var isConnecting: Bool
+    public var showingConnectionSettings: Bool
     
-    package init(
+    public init(
       publisher: MqttPublisherFeature.State = MqttPublisherFeature.State(),
       subscriber: MqttSubscriberFeature.State = MqttSubscriberFeature.State(),
       connectionInfo: MqttClientKitInfo = MqttClientKitInfo(
@@ -50,25 +52,25 @@ package struct MqttFeature {
     }
     
     // Computed properties
-    package var isConnected: Bool {
+    public var isConnected: Bool {
       if case .connected = connectionState {
         return true
       }
       return false
     }
     
-    package var canConnect: Bool {
+    public var canConnect: Bool {
       !isConnecting && !isConnected
     }
     
-    package var canDisconnect: Bool {
+    public var canDisconnect: Bool {
       isConnected
     }
   }
   
   // MARK: - Actions
   @CasePathable
-    package enum Action: Equatable, BindableAction, ComposableArchitecture.ViewAction {
+    public enum Action: Equatable, BindableAction, ComposableArchitecture.ViewAction {
         case view(ViewAction)
         case binding(BindingAction<State>)
         case delegate(Delegate)
@@ -82,7 +84,7 @@ package struct MqttFeature {
         case connectionEffectStarted
         
         @CasePathable
-        package enum ViewAction: Equatable {
+        public enum ViewAction: Equatable {
             // Connection actions
             case connectButtonTapped
             case disconnectButtonTapped
@@ -91,7 +93,7 @@ package struct MqttFeature {
         }
         
         @CasePathable
-        package enum Delegate: Equatable {
+        public enum Delegate: Equatable {
             case connectionStatusChanged(MqttClientKit.State)
             case messagePublished(MQTTPublishInfo)
             case messageReceived(MQTTPublishInfo)
@@ -102,7 +104,7 @@ package struct MqttFeature {
     }
   
   // MARK: - Body
-  package var body: some ReducerOf<Self> {
+  public var body: some ReducerOf<Self> {
     BindingReducer()
     
     Scope(state: \.publisher, action: \.publisher) {
@@ -117,7 +119,7 @@ package struct MqttFeature {
   }
   
   // MARK: - Core Reducer
-  package func core(into state: inout State, action: Action) -> Effect<Action> {
+  public func core(into state: inout State, action: Action) -> Effect<Action> {
     switch action {
     case let .view(viewAction):
       return handleViewAction(&state, viewAction)
@@ -237,7 +239,7 @@ extension MqttFeature {
 // MARK: - Convenience Initializers
 extension MqttFeature.State {
   /// Initialize with pre-configured subscriptions
-  package static func withSubscriptions(_ topics: [String], qos: MQTTQoS = .atMostOnce) -> Self {
+  public static func withSubscriptions(_ topics: [String], qos: MQTTQoS = .atMostOnce) -> Self {
     let subscriptions = topics.map { topic in
       MQTTSubscribeInfo(topicFilter: topic, qos: qos)
     }
@@ -250,12 +252,12 @@ extension MqttFeature.State {
   }
   
   /// Initialize for publish-only use case
-  package static func publisherOnly(connectionInfo: MqttClientKitInfo) -> Self {
+  public static func publisherOnly(connectionInfo: MqttClientKitInfo) -> Self {
     return Self(connectionInfo: connectionInfo)
   }
   
   /// Initialize for subscriber-only use case
-  package static func subscriberOnly(topics: [String] = [], connectionInfo: MqttClientKitInfo) -> Self {
+  public static func subscriberOnly(topics: [String] = [], connectionInfo: MqttClientKitInfo) -> Self {
     return Self.withSubscriptions(topics).with {
       $0.connectionInfo = connectionInfo
     }

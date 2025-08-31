@@ -4,7 +4,7 @@ import PackageDescription
 let package = Package(
     name: "MqttClientKit",
     platforms: [
-        .iOS(.v15), .macOS(.v12)
+        .iOS(.v17), .macOS(.v14)
     ],
     products: [
         .library(
@@ -15,6 +15,10 @@ let package = Package(
             name: "MqttFeatures",
             targets: ["MqttClientKit"]
         ),
+//        .executable(
+//            name: "MqttExamples",
+//            targets: ["Examples"]
+//        ),
     ],
     dependencies: [
         .package(url: "https://github.com/apple/swift-nio.git", from: "2.0.0"),
@@ -28,6 +32,18 @@ let package = Package(
                 .product(name: "MQTTNIO", package: "mqtt-nio"),
                 .product(name: "NIOCore", package: "swift-nio"),
                 .product(name: "ComposableArchitecture", package: "swift-composable-architecture")
+            ]
+        ),
+        .executableTarget(
+            name: "Examples",
+            dependencies: [
+                "MqttClientKit",
+                .product(name: "MQTTNIO", package: "mqtt-nio"),
+                .product(name: "NIOCore", package: "swift-nio"),
+                .product(name: "ComposableArchitecture", package: "swift-composable-architecture")
+            ],
+            resources: [
+                .copy("README.md")
             ]
         ),
         .testTarget(
