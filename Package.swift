@@ -11,7 +11,10 @@ let package = Package(
             name: "MqttClientKit",
             targets: ["MqttClientKit"]
         ),
-        .executable(name: "Examples", targets: ["Examples"])
+        .library(
+            name: "MqttFeatures",
+            targets: ["MqttClientKit"]
+        ),
     ],
     dependencies: [
         .package(url: "https://github.com/apple/swift-nio.git", from: "2.0.0"),
@@ -27,14 +30,9 @@ let package = Package(
                 .product(name: "ComposableArchitecture", package: "swift-composable-architecture")
             ]
         ),
-        .executableTarget(
-            name: "Examples",
-            dependencies: ["MqttClientKit"]
-        ),
         .testTarget(
             name: "MqttClientKitTests",
-            dependencies: ["MqttClientKit"],
-            exclude: ["MqttFeatureTests.swift"]
+            dependencies: ["MqttClientKit"]
         ),
     ]
 )
