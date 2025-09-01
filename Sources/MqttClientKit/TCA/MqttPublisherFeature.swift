@@ -131,6 +131,10 @@ public extension MqttPublisherFeature {
         case binding(BindingAction<State>)
         case delegate(Delegate)
     
+        // Direct publish actions
+        case publish(MQTTPublishInfo)
+        case publishWithDetails(topic: String, payload: String, qos: MQTTQoS, retain: Bool)
+    
         // Internal actions
         case publishStarted
         case publishCompleted
@@ -161,6 +165,19 @@ public extension MqttPublisherFeature {
       
         case let .delegate(delegateAction):
             return handleDelegateAction(&state, delegateAction)
+            
+        case let .publish(publishInfo):
+            return publishMessageDirectly(&state, publishInfo: publishInfo)
+            
+        case let .publishWithDetails(topic, payload, qos, retain):
+            let publishInfo = MQTTPublishInfo(
+                qos: qos,
+                retain: retain,
+                topicName: topic,
+                payload: ByteBuffer(string: payload),
+                properties: .init([])
+            )
+            return publishMessageDirectly(&state, publishInfo: publishInfo)
       
         case .publishStarted:
             state.isPublishing = true
@@ -168,8 +185,6 @@ public extension MqttPublisherFeature {
       
         case .publishCompleted:
             state.isPublishing = false
-            let topicName = state.publishInfo.topicName
-            logger.info("Message published successfully to topic: \(topicName)")
             return .none
       
         case let .publishFailed(error):
@@ -212,6 +227,29 @@ extension MqttPublisherFeature {
         guard state.canPublish else { return .none }
     
         let publishInfo = state.publishInfo
+    
+        return .run { send in
+            await send(.publishStarted)
+            @Dependency(\.mqttClientKit) var mqttClient
+      
+            do {
+                // Check if client is active before publishing
+                guard try await mqttClient.isActive() else {
+                    throw MqttClientKitError.noConnection
+                }
+        
+                try await mqttClient.publish(publishInfo)
+                await send(.publishCompleted)
+                await send(.delegate(.messagePublished(publishInfo)))
+            } catch {
+                let mqttError = error as? MqttClientKitError ?? .underlying(error)
+                await send(.publishFailed(mqttError))
+            }
+        }
+    }
+    
+    private func publishMessageDirectly(_ state: inout State, publishInfo: MQTTPublishInfo) -> Effect<Action> {
+        guard !publishInfo.topicName.isEmpty else { return .none }
     
         return .run { send in
             await send(.publishStarted)

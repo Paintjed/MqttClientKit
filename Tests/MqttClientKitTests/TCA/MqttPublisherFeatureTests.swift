@@ -169,6 +169,72 @@ final class MqttPublisherFeatureTests: XCTestCase {
     }
   }
   
+  // MARK: - Direct Publish Tests
+  func testDirectPublishSuccess() async {
+    let publishInfo = MQTTPublishInfo(
+      qos: .atLeastOnce,
+      retain: true,
+      topicName: "direct/topic",
+      payload: ByteBuffer(string: "Direct message"),
+      properties: .init([])
+    )
+    
+    let store = TestStore(initialState: MqttPublisherFeature.State()) {
+      MqttPublisherFeature()
+    } withDependencies: {
+      $0.mqttClientKit = .testValue
+    }
+    
+    await store.send(\.publish, publishInfo)
+    await store.receive(\.publishStarted) {
+      $0.isPublishing = true
+    }
+    await store.receive(\.publishCompleted) {
+      $0.isPublishing = false
+    }
+    await store.receive(\.delegate.messagePublished, publishInfo)
+  }
+  
+  func testPublishWithDetailsSuccess() async {
+    let store = TestStore(initialState: MqttPublisherFeature.State()) {
+      MqttPublisherFeature()
+    } withDependencies: {
+      $0.mqttClientKit = .testValue
+    }
+    
+    await store.send(.publishWithDetails(topic: "details/topic", payload: "Details message", qos: .exactlyOnce, retain: true))
+    await store.receive(\.publishStarted) {
+      $0.isPublishing = true
+    }
+    await store.receive(\.publishCompleted) {
+      $0.isPublishing = false
+    }
+    await store.receive(\.delegate.messagePublished, MQTTPublishInfo(
+      qos: .exactlyOnce,
+      retain: true,
+      topicName: "details/topic",
+      payload: ByteBuffer(string: "Details message"),
+      properties: .init([])
+    ))
+  }
+  
+  func testDirectPublishEmptyTopic() async {
+    let publishInfo = MQTTPublishInfo(
+      qos: .atMostOnce,
+      retain: false,
+      topicName: "", // Empty topic
+      payload: ByteBuffer(string: "Message"),
+      properties: .init([])
+    )
+    
+    let store = TestStore(initialState: MqttPublisherFeature.State()) {
+      MqttPublisherFeature()
+    }
+    
+    await store.send(\.publish, publishInfo)
+    // Should not trigger any effects when topic is empty
+  }
+
   // MARK: - Binding Tests
   func testBindingActions() async {
     let store = TestStore(initialState: MqttPublisherFeature.State()) {
