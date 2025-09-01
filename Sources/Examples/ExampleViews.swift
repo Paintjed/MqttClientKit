@@ -1,5 +1,5 @@
 //
-//  main.swift
+//  ExampleViews.swift
 //  MqttClientKit Examples
 //
 //  Created by Claude on 2025/8/31.
@@ -8,14 +8,6 @@
 import SwiftUI
 import ComposableArchitecture
 import MqttClientKit
-
-struct ExamplesApp: App {
-  var body: some Scene {
-    WindowGroup {
-      ExampleSelectionView()
-    }
-  }
-}
 
 struct ExampleSelectionView: View {
   var body: some View {
