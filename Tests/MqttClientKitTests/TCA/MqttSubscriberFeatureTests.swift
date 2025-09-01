@@ -24,11 +24,7 @@ final class MqttSubscriberFeatureTests: XCTestCase {
     XCTAssertEqual(store.state.messages, [])
     XCTAssertEqual(store.state.maxMessages, 100)
     XCTAssertNil(store.state.lastError)
-    XCTAssertEqual(store.state.newSubscriptionTopic, "")
-    XCTAssertEqual(store.state.newSubscriptionQoS, .atMostOnce)
-    XCTAssertEqual(store.state.showingSubscriptionForm, false)
     XCTAssertEqual(store.state.hasError, false)
-    XCTAssertEqual(store.state.canAddSubscription, false)
   }
   
   // MARK: - Computed Properties Tests
@@ -39,15 +35,11 @@ final class MqttSubscriberFeatureTests: XCTestCase {
     ]
     
     var state = MqttSubscriberFeature.State(
-      subscriptions: IdentifiedArrayOf(uniqueElements: subscriptions),
-      newSubscriptionTopic: "office/sensors"
+      subscriptions: IdentifiedArrayOf(uniqueElements: subscriptions)
     )
     
     // Test activeSubscriptions - all should be active due to extension
     XCTAssertEqual(state.activeSubscriptions.count, 2)
-    
-    // Test canAddSubscription
-    XCTAssertEqual(state.canAddSubscription, true)
     
     // Test hasError
     XCTAssertEqual(state.hasError, false)
@@ -57,31 +49,22 @@ final class MqttSubscriberFeatureTests: XCTestCase {
   
   // MARK: - Subscription Management Tests
   func testAddSubscriptionSuccess() async {
-    var state = MqttSubscriberFeature.State()
-    state.newSubscriptionTopic = "home/temperature"
-    state.newSubscriptionQoS = .atLeastOnce
-    
-    let store = TestStore(initialState: state) {
+    let store = TestStore(initialState: MqttSubscriberFeature.State()) {
       MqttSubscriberFeature()
     } withDependencies: {
       $0.mqttClientKit = .testValue
     }
     
-    await store.send(\.view.confirmAddSubscriptionTapped) {
-      let subscribeInfo = MQTTSubscribeInfo(
-        topicFilter: "home/temperature",
-        qos: .atLeastOnce
-      )
-      $0.subscriptions.append(subscribeInfo)
-      $0.showingSubscriptionForm = false
-      $0.newSubscriptionTopic = ""
-      $0.newSubscriptionQoS = .atMostOnce
-    }
-    await store.receive(\.subscribeCompleted, "home/temperature")
-    await store.receive(\.delegate.subscriptionAdded, MQTTSubscribeInfo(
+    let subscribeInfo = MQTTSubscribeInfo(
       topicFilter: "home/temperature",
       qos: .atLeastOnce
-    ))
+    )
+    
+    await store.send(\.view.subscribe, subscribeInfo) {
+      $0.subscriptions.append(subscribeInfo)
+    }
+    await store.receive(\.subscribeCompleted, "home/temperature")
+    await store.receive(\.delegate.subscriptionAdded, subscribeInfo)
   }
   
   // MARK: - Message Handling Tests
@@ -105,22 +88,23 @@ final class MqttSubscriberFeatureTests: XCTestCase {
   }
   
   // MARK: - UI Actions Tests
-  func testSubscriptionFormFlow() async {
-    let store = TestStore(initialState: MqttSubscriberFeature.State()) {
+  func testUnsubscribe() async {
+    let subscribeInfo = MQTTSubscribeInfo(topicFilter: "home/temperature", qos: .atLeastOnce)
+    let state = MqttSubscriberFeature.State(
+      subscriptions: [subscribeInfo]
+    )
+    
+    let store = TestStore(initialState: state) {
       MqttSubscriberFeature()
+    } withDependencies: {
+      $0.mqttClientKit = .testValue
     }
     
-    // Show subscription form
-    await store.send(\.view.addSubscriptionButtonTapped) {
-      $0.showingSubscriptionForm = true
+    await store.send(\.view.unsubscribe, subscribeInfo.id)
+    await store.receive(\.unsubscribeCompleted, "home/temperature") {
+      $0.subscriptions.removeAll()
     }
-    
-    // Dismiss subscription form
-    await store.send(\.view.subscriptionFormDismissed) {
-      $0.showingSubscriptionForm = false
-      $0.newSubscriptionTopic = ""
-      $0.newSubscriptionQoS = .atMostOnce
-    }
+    await store.receive(\.delegate.subscriptionRemoved, "home/temperature")
   }
   
   func testClearMessages() async {
@@ -140,7 +124,7 @@ final class MqttSubscriberFeatureTests: XCTestCase {
       MqttSubscriberFeature()
     }
     
-    await store.send(\.view.clearMessagesButtonTapped) {
+    await store.send(\.view.clearMessages) {
       $0.messages.removeAll()
     }
   }
@@ -159,8 +143,8 @@ final class MqttSubscriberFeatureTests: XCTestCase {
     await store.receive(\.messageStreamStarted)
   }
   
-  // MARK: - Binding Tests
-  func testBindingClearsError() async {
+  // MARK: - Error Management Tests
+  func testClearError() async {
     var state = MqttSubscriberFeature.State()
     state.lastError = .noConnection
     
@@ -168,8 +152,7 @@ final class MqttSubscriberFeatureTests: XCTestCase {
       MqttSubscriberFeature()
     }
     
-    await store.send(\.binding, .set(\.newSubscriptionTopic, "home/test")) {
-      $0.newSubscriptionTopic = "home/test"
+    await store.send(\.view.clearError) {
       $0.lastError = nil
     }
   }

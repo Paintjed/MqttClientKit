@@ -25,27 +25,16 @@ public struct MqttSubscriberFeature {
     public var maxMessages: Int
     public var lastError: MqttClientKitError?
     
-    // New subscription form
-    public var newSubscriptionTopic: String
-    public var newSubscriptionQoS: MQTTQoS
-    public var showingSubscriptionForm: Bool
-    
     public init(
       subscriptions: IdentifiedArrayOf<MQTTSubscribeInfo> = [],
       messages: IdentifiedArrayOf<MQTTPublishInfo> = [],
       maxMessages: Int = 100,
-      lastError: MqttClientKitError? = nil,
-      newSubscriptionTopic: String = "",
-      newSubscriptionQoS: MQTTQoS = .atMostOnce,
-      showingSubscriptionForm: Bool = false
+      lastError: MqttClientKitError? = nil
     ) {
       self.subscriptions = subscriptions
       self.messages = messages
       self.maxMessages = maxMessages
       self.lastError = lastError
-      self.newSubscriptionTopic = newSubscriptionTopic
-      self.newSubscriptionQoS = newSubscriptionQoS
-      self.showingSubscriptionForm = showingSubscriptionForm
     }
     
     // Computed properties
@@ -55,10 +44,6 @@ public struct MqttSubscriberFeature {
     
     public var hasError: Bool {
       lastError != nil
-    }
-    
-    public var canAddSubscription: Bool {
-      !newSubscriptionTopic.isEmpty
     }
   }
     
@@ -90,14 +75,12 @@ extension MqttSubscriberFeature {
     @CasePathable
     public enum ViewAction: Equatable {
       // Subscription management
-      case addSubscriptionButtonTapped
-      case subscriptionFormDismissed
-      case confirmAddSubscriptionTapped
-      case unsubscribeButtonTapped(String)
+      case subscribe(MQTTSubscribeInfo)
+      case unsubscribe(String)
       
       // Message management
-      case clearMessagesButtonTapped
-      case clearErrorButtonTapped
+      case clearMessages
+      case clearError
       
       // UI actions
       case task
@@ -171,27 +154,17 @@ extension MqttSubscriberFeature {
 extension MqttSubscriberFeature {
   private func handleViewAction(_ state: inout State, _ action: Action.ViewAction) -> Effect<Action> {
     switch action {
-    case .addSubscriptionButtonTapped:
-      state.showingSubscriptionForm = true
-      return .none
+    case let .subscribe(subscribeInfo):
+      return addSubscription(&state, subscribeInfo)
       
-    case .subscriptionFormDismissed:
-      state.showingSubscriptionForm = false
-      state.newSubscriptionTopic = ""
-      state.newSubscriptionQoS = .atMostOnce
-      return .none
-      
-    case .confirmAddSubscriptionTapped:
-      return addSubscription(&state)
-      
-    case let .unsubscribeButtonTapped(subscriptionID):
+    case let .unsubscribe(subscriptionID):
       return removeSubscription(&state, subscriptionID)
       
-    case .clearMessagesButtonTapped:
+    case .clearMessages:
       state.messages.removeAll()
       return .none
       
-    case .clearErrorButtonTapped:
+    case .clearError:
       state.lastError = nil
       return .none
       
@@ -219,21 +192,10 @@ extension MqttSubscriberFeature {
     return .send(.delegate(.messageReceived(publishInfo)))
   }
   
-  private func addSubscription(_ state: inout State) -> Effect<Action> {
-    guard state.canAddSubscription else { return .none }
-    
-    let subscribeInfo = MQTTSubscribeInfo(
-      topicFilter: state.newSubscriptionTopic,
-      qos: state.newSubscriptionQoS
-    )
-    
+  private func addSubscription(_ state: inout State, _ subscribeInfo: MQTTSubscribeInfo) -> Effect<Action> {
     state.subscriptions.append(subscribeInfo)
-    state.showingSubscriptionForm = false
     
-    // Clear form
-    let topicFilter = state.newSubscriptionTopic
-    state.newSubscriptionTopic = ""
-    state.newSubscriptionQoS = .atMostOnce
+    let topicFilter = subscribeInfo.topicFilter
     
     return .run { send in
       @Dependency(\.mqttClientKit) var mqttClient

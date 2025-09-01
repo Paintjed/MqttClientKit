@@ -138,18 +138,24 @@ store.send(.view(.clearFormButtonTapped))
 
 ### MqttSubscriberFeature
 
-Manages dynamic subscriptions and message history:
+Manages dynamic subscriptions and message history with action-based subscription API:
 
 ```swift
-// Subscribe to topics
-store.send(.view(.subscribeButtonTapped))
+// Subscribe to topics directly with action
+store.send(.view(.subscribe(MQTTSubscribeInfo(
+  topicFilter: "home/temperature", 
+  qos: .atLeastOnce
+))))
+
+// Unsubscribe from topics
+store.send(.view(.unsubscribe(subscriptionID)))
 
 // View received messages
-store.state.receivedMessages // Array of received messages
+store.state.messages // Array of received messages
 
-// Manage subscriptions
-store.send(.view(.addSubscriptionButtonTapped))
-store.send(.view(.removeSubscription(id)))
+// Clear messages and errors
+store.send(.view(.clearMessages))
+store.send(.view(.clearError))
 ```
 
 ## Example Applications

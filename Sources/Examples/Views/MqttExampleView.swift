@@ -322,11 +322,7 @@ private struct MqttSubscriberView: View {
         
         Spacer()
         
-        Button("Add") {
-          send(.addSubscriptionButtonTapped)
-        }
-        .buttonStyle(.bordered)
-        .controlSize(.small)
+        subscribeToCommonTopics()
       }
       
       if store.subscriptions.isEmpty {
@@ -351,7 +347,7 @@ private struct MqttSubscriberView: View {
               Spacer()
               
               Button("Remove") {
-                send(.unsubscribeButtonTapped(subscription.topicFilter))
+                send(.unsubscribe(subscription.id))
               }
               .buttonStyle(.plain)
               .font(.caption)
@@ -369,9 +365,7 @@ private struct MqttSubscriberView: View {
     .padding()
     .background(.quaternary)
     .cornerRadius(8)
-    .sheet(isPresented: $store.showingSubscriptionForm) {
-      SubscriptionFormView(store: store)
-    }
+    // Removed sheet for subscription form - now using direct action
   }
   
   private var messagesSection: some View {
@@ -403,54 +397,31 @@ private struct MqttSubscriberView: View {
   }
 }
 
-// MARK: - Subscription Form
-@ViewAction(for: MqttSubscriberFeature.self)
-private struct SubscriptionFormView: View {
-  @Bindable var store: StoreOf<MqttSubscriberFeature>
-  @Environment(\.dismiss) private var dismiss
-  @State private var topicInput = "test/#"
-  @State private var qosSelection: MQTTQoS = .atMostOnce
-  
-  var body: some View {
-    NavigationStack {
-      Form {
-        Section("Subscription Details") {
-          TextField("Topic Filter", text: $topicInput)
-            .textFieldStyle(.roundedBorder)
-          
-          Picker("QoS Level", selection: $qosSelection) {
-            Text("0 - At most once").tag(MQTTQoS.atMostOnce)
-            Text("1 - At least once").tag(MQTTQoS.atLeastOnce)
-            Text("2 - Exactly once").tag(MQTTQoS.exactlyOnce)
-          }
-        }
-        
-        Section("Common Topic Patterns") {
-          Button("test/#") { topicInput = "test/#" }
-          Button("sensors/+/temperature") { topicInput = "sensors/+/temperature" }
-          Button("home/+/status") { topicInput = "home/+/status" }
-        }
-        .buttonStyle(.plain)
+// MARK: - Quick Subscription Helpers (for demo purposes)
+private extension MqttSubscriberView {
+  func subscribeToCommonTopics() -> some View {
+    Menu("Quick Subscribe") {
+      Button("test/#") {
+        send(.subscribe(MQTTSubscribeInfo(
+          topicFilter: "test/#",
+          qos: .atMostOnce
+        )))
       }
-      .navigationTitle("Add Subscription")
-      .toolbar {
-        ToolbarItem(placement: .cancellationAction) {
-          Button("Cancel") {
-            dismiss()
-          }
-        }
-        ToolbarItem(placement: .confirmationAction) {
-          Button("Subscribe") {
-            store.newSubscriptionTopic = topicInput
-          store.newSubscriptionQoS = qosSelection
-          send(.confirmAddSubscriptionTapped)
-            dismiss()
-          }
-          .fontWeight(.semibold)
-          .disabled(topicInput.isEmpty)
-        }
+      Button("sensors/+/temperature") {
+        send(.subscribe(MQTTSubscribeInfo(
+          topicFilter: "sensors/+/temperature",
+          qos: .atLeastOnce
+        )))
+      }
+      Button("home/+/status") {
+        send(.subscribe(MQTTSubscribeInfo(
+          topicFilter: "home/+/status",
+          qos: .atMostOnce
+        )))
       }
     }
+    .buttonStyle(.bordered)
+    .controlSize(.small)
   }
 }
 
