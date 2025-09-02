@@ -51,7 +51,7 @@ final class MqttFeatureTests: XCTestCase {
       $0.mqttClientKit = .testValue
     }
     
-    await store.send(\.view.connectButtonTapped)
+    await store.send(\.view.connect)
     await store.receive(\.connectionEffectStarted) {
       $0.isConnecting = true
     }
@@ -80,11 +80,11 @@ final class MqttFeatureTests: XCTestCase {
       MqttFeature()
     }
     
-    await store.send(\.view.connectionSettingsButtonTapped) {
+    await store.send(\.view.showConnectionSettings) {
       $0.showingConnectionSettings = true
     }
     
-    await store.send(\.view.connectionSettingsDismissed) {
+    await store.send(\.view.hideConnectionSettings) {
       $0.showingConnectionSettings = false
     }
   }

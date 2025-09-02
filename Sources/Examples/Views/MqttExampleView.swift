@@ -53,12 +53,15 @@ struct MqttExampleView: View {
       .toolbar {
         ToolbarItem(placement: .automatic) {
           Button("Settings") {
-            send(.connectionSettingsButtonTapped)
+            send(.showConnectionSettings)
           }
         }
       }
       .sheet(isPresented: $store.showingConnectionSettings) {
         ConnectionSettingsView(store: store)
+      }
+      .task {
+        send(.task)
       }
     }
   }
@@ -129,13 +132,13 @@ struct MqttExampleView: View {
   private var connectionControlsSection: some View {
     HStack(spacing: 12) {
       Button("Connect") {
-        send(.connectButtonTapped)
+        send(.connect)
       }
       .buttonStyle(.borderedProminent)
       .disabled(!store.canConnect)
       
       Button("Disconnect") {
-        send(.disconnectButtonTapped)
+        send(.disconnect)
       }
       .buttonStyle(.bordered)
       .disabled(!store.canDisconnect)
@@ -277,7 +280,7 @@ private struct MqttPublisherView: View {
           properties: .init([])
         )
         // 然後觸發發布
-        send(.publishButtonTapped)
+        send(.publish)
       }
       .buttonStyle(.borderedProminent)
       .disabled(topicInput.isEmpty || store.isPublishing)

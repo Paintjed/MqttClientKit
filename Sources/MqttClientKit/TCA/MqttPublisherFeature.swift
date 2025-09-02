@@ -142,8 +142,8 @@ public extension MqttPublisherFeature {
     
         @CasePathable
         public enum ViewAction: Equatable {
-            case publishButtonTapped
-            case clearFormButtonTapped
+            case publish
+            case clearForm
         }
     
         @CasePathable
@@ -200,10 +200,10 @@ public extension MqttPublisherFeature {
 extension MqttPublisherFeature {
     private func handleViewAction(_ state: inout State, _ action: Action.ViewAction) -> Effect<Action> {
         switch action {
-        case .publishButtonTapped:
+        case .publish:
             return publishMessage(&state)
       
-        case .clearFormButtonTapped:
+        case .clearForm:
             state.publishInfo = MQTTPublishInfo(
                 qos: .atMostOnce,
                 retain: false,

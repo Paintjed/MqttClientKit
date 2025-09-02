@@ -132,8 +132,8 @@ store.send(.publishWithDetails(
 ))
 
 // Traditional UI-driven publishing (for forms)
-store.send(.view(.publishButtonTapped))
-store.send(.view(.clearFormButtonTapped))
+store.send(.view(.publish))
+store.send(.view(.clearForm))
 ```
 
 ### MqttSubscriberFeature

@@ -85,11 +85,14 @@ public struct MqttFeature {
         
         @CasePathable
         public enum ViewAction: Equatable {
+            // Lifecycle actions
+            case task
+            
             // Connection actions
-            case connectButtonTapped
-            case disconnectButtonTapped
-            case connectionSettingsButtonTapped
-            case connectionSettingsDismissed
+            case connect
+            case disconnect
+            case showConnectionSettings
+            case hideConnectionSettings
         }
         
         @CasePathable
@@ -154,17 +157,22 @@ public struct MqttFeature {
 extension MqttFeature {
   private func handleViewAction(_ state: inout State, _ action: Action.ViewAction) -> Effect<Action> {
     switch action {
-    case .connectButtonTapped:
+    case .task:
+      return .merge(
+        .send(.subscriber(.view(.task)))
+      )
+      
+    case .connect:
       return connectToMqtt(state)
       
-    case .disconnectButtonTapped:
+    case .disconnect:
       return disconnectFromMqtt()
       
-    case .connectionSettingsButtonTapped:
+    case .showConnectionSettings:
       state.showingConnectionSettings = true
       return .none
       
-    case .connectionSettingsDismissed:
+    case .hideConnectionSettings:
       state.showingConnectionSettings = false
       return .none
     }

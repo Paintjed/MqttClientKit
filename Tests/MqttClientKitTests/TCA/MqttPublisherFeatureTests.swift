@@ -85,7 +85,7 @@ final class MqttPublisherFeatureTests: XCTestCase {
       $0.mqttClientKit = .testValue
     }
     
-    await store.send(\.view.publishButtonTapped)
+    await store.send(\.view.publish)
     await store.receive(\.publishStarted) {
       $0.isPublishing = true
     }
@@ -121,7 +121,7 @@ final class MqttPublisherFeatureTests: XCTestCase {
       )
     }
     
-    await store.send(\.view.publishButtonTapped)
+    await store.send(\.view.publish)
     await store.receive(\.publishStarted) {
       $0.isPublishing = true
     }
@@ -141,7 +141,7 @@ final class MqttPublisherFeatureTests: XCTestCase {
       MqttPublisherFeature()
     }
     
-    await store.send(\.view.publishButtonTapped)
+    await store.send(\.view.publish)
     // Should not trigger any effects when topic is empty
   }
   
@@ -158,7 +158,7 @@ final class MqttPublisherFeatureTests: XCTestCase {
       MqttPublisherFeature()
     }
     
-    await store.send(\.view.clearFormButtonTapped) {
+    await store.send(\.view.clearForm) {
       $0.publishInfo = MQTTPublishInfo(
         qos: .atMostOnce,
         retain: false,
