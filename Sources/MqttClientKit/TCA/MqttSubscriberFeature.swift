@@ -243,10 +243,16 @@ extension MqttSubscriberFeature {
   
   private func startMessageStream() -> Effect<Action> {
     return .run { send in
-      await send(.messageStreamStarted)
       @Dependency(\.mqttClientKit) var mqttClient
       
       do {
+        // Check if client is active before starting message stream
+        guard try await mqttClient.isActive() else {
+          throw MqttClientKitError.noConnection
+        }
+        
+        await send(.messageStreamStarted)
+        
         let stream = mqttClient.received()
         for try await publishInfo in stream {
           await send(.messageReceived(publishInfo))

@@ -95,7 +95,7 @@ for try await message in client.received() {
 
 ### MqttFeature
 
-Main orchestrating feature that combines connection, publishing, and subscription:
+Main orchestrating feature that combines connection, publishing, and subscription management. Message streams automatically start when connection is established:
 
 ```swift
 import MqttClientKit
@@ -106,6 +106,10 @@ struct MyView: View {
   
   var body: some View {
     MqttExampleView(store: store)
+      .task {
+        // Initialize the feature - message stream will start when connected
+        send(.task)
+      }
   }
 }
 
@@ -113,6 +117,12 @@ struct MyView: View {
 Store(initialState: MqttFeature.State()) {
   MqttFeature()
 }
+
+// Connection flow automatically handles message stream lifecycle:
+// 1. Connect to MQTT broker
+// 2. When connection succeeds, message stream starts automatically  
+// 3. Messages are received and processed through subscriber feature
+// 4. When disconnected, message stream stops automatically
 ```
 
 ### MqttPublisherFeature
@@ -138,7 +148,7 @@ store.send(.view(.clearForm))
 
 ### MqttSubscriberFeature
 
-Manages dynamic subscriptions and message history with action-based subscription API:
+Manages dynamic subscriptions and message history with automatic connection-based message stream:
 
 ```swift
 // Subscribe to topics directly with action
@@ -150,12 +160,15 @@ store.send(.view(.subscribe(MQTTSubscribeInfo(
 // Unsubscribe from topics
 store.send(.view(.unsubscribe(subscriptionID)))
 
-// View received messages
+// View received messages (automatically populated when connected)
 store.state.messages // Array of received messages
 
 // Clear messages and errors
 store.send(.view(.clearMessages))
 store.send(.view(.clearError))
+
+// Note: Message stream automatically starts when MQTT connection is established
+// No manual .task trigger needed - handled by parent MqttFeature
 ```
 
 ## Example Applications

@@ -158,9 +158,9 @@ extension MqttFeature {
   private func handleViewAction(_ state: inout State, _ action: Action.ViewAction) -> Effect<Action> {
     switch action {
     case .task:
-      return .merge(
-        .send(.subscriber(.view(.task)))
-      )
+      // .task now only handles view lifecycle initialization
+      // Message stream will be started when connection is established
+      return .none
       
     case .connect:
       return connectToMqtt(state)
@@ -215,7 +215,14 @@ extension MqttFeature {
     
     logger.info("MQTT state changed to: \(String(describing: mqttState))")
     
-    return .send(.delegate(.connectionStatusChanged(mqttState)))
+    var effects: [Effect<Action>] = [.send(.delegate(.connectionStatusChanged(mqttState)))]
+    
+    // Start message stream when connection is established
+    if case .connected = mqttState {
+      effects.append(.send(.subscriber(.view(.task))))
+    }
+    
+    return .merge(effects)
   }
   
   private func connectToMqtt(_ state: State) -> Effect<Action> {
